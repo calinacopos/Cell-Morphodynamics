@@ -1,29 +1,33 @@
 % Author: Calina A. Copos
 % Last updated: 1/5/21
-clear;
-close all;
-clc;
+%clear;
+%close all;
+%clc;
 
 % Knowns: f, xi, t1, t2, tcc, t0, tau
 
 % Dimensionless parameters
 f   = 0.1;         % maximal adhesion/protrusion
-xi  = 0.5;       
-t1  = 1.0;          % leader force
+xi  = 0.1;       
+t1  = 1.0;         % leader force
 t2  = 1.5;         % trailer force
-tcc = 1.2;          % cell-cell force
-t0  = 1.5;            % characteristic tension that breaks adhesions
+tcc = 1.0;         % cell-cell force
+t0  = 0.75;        % characteristic tension that breaks adhesions
 tau = 0.1;         % ratio of membrane tension to adhesion/protrusion
 
 depsilon = 0.001;
-v        = f + t1*(tau/t0^2-f/t0);       % velocity (linear approx. v = f + t*(tau/t0^2 - f/t0))
+%v        = f + t1*(tau/t0^2-f/t0);       % velocity (linear approx. v = f + t*(tau/t0^2 - f/t0))
+v = 0.01;
 dh       = 1.;
 count    = 0;
+%w = asin(xi*v/tcc);
+w = 0.1;
 
 %% Numerical solver
 while(dh>=0.001 && count<=10000)
-    v = v + depsilon;
-    w = asin(xi*v/tcc);
+    v = tcc*sin(gamma)/xi + depsilon;
+    %w = w + depsilon;
+    %w = asin(xi*v/tcc);
     
     % Step 1. Guess v. Force balance at front and rear endpoints
     % (1.a) (1+f) (1 - t1/(t0+tau)) - v = t1 cos(a1)
@@ -89,9 +93,13 @@ while(dh>=0.001 && count<=10000)
     gamma = pi/2-w-2*x;
 
     % Step 8.
-    vv = tcc*sin(w)/xi;
+    ggamma = asin(xi*v/tcc);
+    vv = tcc*sin(gamma)/xi;
+    dg = abs(ggamma-gamma);
+    dv = abs(vv-v);
 
-    sprintf('Speed: vv=%.4f',vv)
+    sprintf('Speed: v=%.4f, vv=%.4f',v,vv)
+    sprintf('Speed: gamma=%.4f, ggamma=%.4f',gamma,ggamma)
     count = count + 1;
 end
 

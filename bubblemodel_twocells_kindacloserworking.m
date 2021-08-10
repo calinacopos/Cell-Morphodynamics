@@ -24,8 +24,8 @@ count    = 0;
 
 %% Numerical solver
 
-tol = 0.01; 
-w = -0.5;%-1.0;
+tol = 0.02; 
+w = -0.5;
 v = f + t1*(tau/t0^2-f/t0);
 %v = 0.1;
 while(dv>=tol && count<=10000)
@@ -33,7 +33,7 @@ while(dv>=tol && count<=10000)
     dh = 1.;
     %v = 0.001;
     v = v + epsilon;
-    w = -0.5;%-1.0;
+    w = -0.5;
     %w = w + epsilon;
     %v = epsilon;
     
@@ -156,7 +156,7 @@ while(dv>=tol && count<=10000)
 
     % Step 8.
     % tcc cos(gamma) = xi*v at the bottom of the cell-cell boundary
-    vv = -tcc*cos(gamma)/xi;
+    vv = tcc*cos(gamma)/xi;
     dv = abs(vv-v);
     
     sprintf('Speed: v=%.4f vv=%.4f',v,vv)

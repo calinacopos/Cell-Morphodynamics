@@ -12,7 +12,7 @@ xi  = 0.1;          % effective drag
 t1  = 1.0;          % leader force
 t2  = 1.1;          % trailer force
 tcc = 0.3;          % cell-cell force
-t0  = 1.3;          % characteristic tension that breaks adhesions
+t0  = 1.4;          % characteristic tension that breaks adhesions
 tau = 0.1;          % ratio of membrane tension to adhesion/protrusion
 
 epsilon = 0.001;
@@ -25,7 +25,7 @@ count    = 0;
 %% Numerical solver
 
 tol = 0.01; 
-w = -0.5;%-1.0;
+w = -0.5;
 v = f + t1*(tau/t0^2-f/t0);
 %v = 0.1;
 while(dv>=tol && count<=10000)
@@ -33,7 +33,7 @@ while(dv>=tol && count<=10000)
     dh = 1.;
     %v = 0.001;
     v = v + epsilon;
-    w = -0.5;%-1.0;
+    w = -0.5;
     %w = w + epsilon;
     %v = epsilon;
     
@@ -156,7 +156,7 @@ while(dv>=tol && count<=10000)
 
     % Step 8.
     % tcc cos(gamma) = xi*v at the bottom of the cell-cell boundary
-    vv = -tcc*cos(gamma)/xi;
+    vv = tcc*cos(gamma)/xi;
     dv = abs(vv-v);
     
     sprintf('Speed: v=%.4f vv=%.4f',v,vv)

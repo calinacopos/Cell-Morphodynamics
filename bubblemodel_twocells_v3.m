@@ -8,14 +8,14 @@ clc;
 
 % Dimensionless parameters
 f   = 0.1;          % maximal adhesion/protrusion
-xi  = 0.1;          % effective drag
+xi  = 0.75;         % effective drag
 t1  = 1.0;          % leader force
-t2  = 1.1;          % trailer force
-tcc = 0.3;          % cell-cell force
+t2  = 1.0;          % trailer force
+tcc = 0.5;          % cell-cell force
 t0  = 1.3;          % characteristic tension that breaks adhesions
 tau = 0.1;          % ratio of membrane tension to adhesion/protrusion
 
-epsilon = 0.001;
+epsilon  = 0.001;
 v        = f + t1*(tau/t0^2-f/t0);       % velocity (linear approx. v = f + t*(tau/t0^2 - f/t0))
 dh       = 1.;
 dv       = 1.;
@@ -24,21 +24,21 @@ count    = 0;
 
 %% Numerical solver
 
-tol = 0.01; 
-w = -0.5;%-1.0;
+tolv = 0.05; 
+tolh = 0.01;
+w = -0.5;
 v = f + t1*(tau/t0^2-f/t0);
 %v = 0.1;
-while(dv>=tol && count<=10000)
+while(dv>=tolv && count<=10000)
 %while(count<=1)
     dh = 1.;
     %v = 0.001;
     v = v + epsilon;
-    w = -0.5;%-1.0;
+    w = -0.5;
     %w = w + epsilon;
     %v = epsilon;
     
-    while(dh>tol && count<=10000)
-        %v = v + epsilon;
+    while(dh>tolh && count<=10000)
         w = w + epsilon;
         wsgn = w/abs(w);
         
@@ -51,8 +51,9 @@ while(dv>=tol && count<=10000)
         % varies greatly with t0 (critical adhesion breaking force)
 
         % Step 2. Guess w. Force balance at the top of cell-cell region.
-        % (2.a) t1 cos(b1) - t2 cos(b2) +/- tcc sin(|w|) = 0
+        % (2.a) t1 cos(b1) - t2 cos(b2) + wsgn tcc sin(|w|) = 0
         % (2.b) t1 sin(b1) + t2 sin(b2) -   tcc cos(|w|) = 0
+        
         % play around with tcc, xi
         %func1 = @(b2) t1*sin( acos(t2/t1*cos(b2) + tcc/t1*sin(w)) ) + t2*sin(b2) - tcc*cos(w);
         %b2 = fzero(func1,[-pi/2,pi/2]);
@@ -106,8 +107,14 @@ while(dv>=tol && count<=10000)
         % (3.b) r2 = ( (a2+b2) - 0.5*sin(a2)*cos(a2) - 0.5*cos(a2)*cos(a2)*tan(b2) )^(-1/2)
         
         % (works 6/9/21)
-        r1 = ( (a1+b1) - 0.5*sin(a1)*cos(a1) - 0.5*cos(a1)*cos(a1)*tan(b1) )^(-1/2);
-        r2 = ( (a2+b2) - 0.5*sin(a2)*cos(a2) - 0.5*cos(a2)*cos(a2)*tan(b2) )^(-1/2);
+        %r1 = ( (a1+b1) - 0.5*sin(a1)*cos(a1) - 0.5*cos(a1)*cos(a1)*tan(b1) )^(-1/2);
+        %r2 = ( (a2+b2) - 0.5*sin(a2)*cos(a2) - 0.5*cos(a2)*cos(a2)*tan(b2) )^(-1/2);
+        
+        % (include tiny triangles in area calculation, works 6/17/21)
+        tt1 = 0.5*( cos(b1)-cos(a1)*tan(b1) )*( sin(b1)-cos(a1)*tan(b1)*tan(b1) );
+        tt2 = 0.5*( cos(b2)-cos(a2)*tan(b2) )*( sin(b2)-cos(a2)*tan(b2)*tan(b2) );
+        r1 = ( 0.5*(a1+b1) - 0.5*sin(a1)*cos(a1) - 0.5*cos(a1)*cos(a1)*tan(b1) + tt1)^(-1/2);
+        r2 = ( 0.5*(a2+b2) - 0.5*sin(a2)*cos(a2) - 0.5*cos(a2)*cos(a2)*tan(b2) + tt2)^(-1/2);
         
         % Step 4.
         % (4.a) h = h1 = r1*(cos(b1)-cos(a1))
@@ -121,8 +128,8 @@ while(dv>=tol && count<=10000)
             keyboard();
         end
 
-        sprintf('Angles (degrees): a1=%.4f a2=%.4f b1=%.4f b2=%.4f w=%.4f',a1*180/pi,a2*180/pi,b1*180/pi,b2*180/pi,w*180/pi)
-        sprintf('Cell-cell region: h1=%.4f h2=%.4f dh=%.4f',h1,h2,dh)
+        %sprintf('Angles (degrees): a1=%.4f a2=%.4f b1=%.4f b2=%.4f w=%.4f',a1*180/pi,a2*180/pi,b1*180/pi,b2*180/pi,w*180/pi)
+        %sprintf('Cell-cell region: h1=%.4f h2=%.4f dh=%.4f',h1,h2,dh)
     end
     
     h = h2;
@@ -132,10 +139,11 @@ while(dv>=tol && count<=10000)
     p2 = t2/r2;
 
     % Step 6. Find the radius of curvature for the cell-cell junction:
-    rcc = tcc/abs(t2/r2 - t1/r1);
+    %rcc = tcc/abs(t2/r2 - t1/r1);
+    rcc = tcc/abs(t2/r2 - t1/r1); % edited 6/16
 
     % Step 7.
-    func2 = @(x) h^2/(cos(x+abs(w))^2) - 2*rcc^2*(1-cos(2*x));
+    func2 = @(x) h^2/(cos(abs(x)+abs(w))^2) - 2*rcc^2*(1-cos(2*abs(x)));
     %func2 = @(x) h^2/(cos(x-w)^2) - 2*rcc^2*(1-cos(2*x));
     
     try 
@@ -146,7 +154,7 @@ while(dv>=tol && count<=10000)
   
     %x = fzero(func2,[0,pi/4]);
     %gamma = pi/2-w-2*x;
-    gamma = pi/2-abs(w)-2*x;
+    gamma = pi/2-abs(w)-2*abs(x);
     
 %     if(wsgn<0)
 %         func2 = @(x) h^2/(cos(x-w)^2) - 2*rcc^2*(1-cos(2*x));
@@ -156,11 +164,11 @@ while(dv>=tol && count<=10000)
 
     % Step 8.
     % tcc cos(gamma) = xi*v at the bottom of the cell-cell boundary
-    vv = -tcc*cos(gamma)/xi;
+    vv = tcc*cos(gamma)/xi;
     dv = abs(vv-v);
     
-    sprintf('Speed: v=%.4f vv=%.4f',v,vv)
-    sprintf('Angle: gamma=%.4f',gamma)
+    %sprintf('Speed: v=%.4f vv=%.4f',v,vv)
+    %sprintf('Angle: gamma=%.4f',gamma)
     count = count + 1;
 end
 
@@ -198,16 +206,20 @@ elseif wsgn>0
     end_angle_cc = start_angle_cc+2*x;
 end
 
-start_angle_cc = 3*pi/2+gamma+2*x;
-end_angle_cc = start_angle_cc-2*x;
+%start_angle_cc = 3*pi/2+gamma+2*x;
+%end_angle_cc = start_angle_cc-2*x;
+
+start_angle_cc = 3*pi/2+gamma+2*abs(x);
+end_angle_cc = start_angle_cc-2*abs(x);
 
 th3 = linspace(start_angle_cc,end_angle_cc,N);
 %center3 = [x1(end)+wsgn*rcc*cos(abs(w));y1(end)+rcc*sin(abs(w))];
 %center3 = [x1(end)-rcc*sin(pi/2-w);y1(end)+rcc*cos(pi/2-w)];
-center3 = [x1(end)+h*cot(gamma+x)-rcc*cos(pi/2-gamma);y1(end)-rcc*sin(abs(w))];
+%center3 = [x1(end)+h*cot(gamma+x)-rcc*cos(pi/2-gamma);y1(end)-rcc*sin(abs(w))];
+center3 = [x1(end)-h*cot(gamma+abs(x))-rcc*cos(pi/2-gamma);y1(end)+rcc*sin(abs(w))];
 %center3=[x1(end)-rcc*sin(3*pi/4-gamma);y1(end)+rcc*sin(3*pi/4-gamma)];
 x3 = center3(1) + rcc*cos(th3);
-y3 = center3(2) - rcc*sin(th3);
+y3 = center3(2) + rcc*sin(th3);
 plot(x3,y3,'-g','linewidth',2);
 
 plot(linspace(-4,6,100),y2(1)*ones(100,1),'-k','linewidth',2);
@@ -216,20 +228,28 @@ scatter(x2(1),y2(1),100,'bo','fill');
 scatter(x1(end),y1(end),100,'bo','fill');
 set(gca,'fontsize',20,'fontname','Times New Roman'); box on;
 set(gcf,'color','w');
-title({['T_{1} = ', num2str(t1), ' Alpha_{1} = ', num2str(a1*180/pi),' Beta_{1} = ', num2str(real(b1)*180/pi)],['T_{2} = ', num2str(t2), ' Alpha_{2} = ', num2str(a2*180/pi),' Beta_{2} = ',num2str(real(b2)*180/pi)],['Gamma = ', num2str(real(gamma)*180/pi),', w = ', num2str(real(w)*180/pi),', v = ', num2str(v),', h = ', num2str(h),', t_{cc} = ',num2str(tcc)]});
+title({['\xi = ',num2str(xi), ', r_{1} = ',num2str(r1),', r_{2} = ',num2str(r2),', r_{cc} = ',num2str(rcc)],['t_{1} = ', num2str(t1), ', \alpha_{1} = ', num2str(a1*180/pi),', \beta_{1} = ', num2str(real(b1)*180/pi)],['t_{2} = ', num2str(t2), ', \alpha_{2} = ', num2str(a2*180/pi),', \beta_{2} = ',num2str(real(b2)*180/pi)],['\gamma = ', num2str(real(gamma)*180/pi),', w = ', num2str(real(w)*180/pi),', v = ', num2str(v),', h = ', num2str(h),', t_{cc} = ',num2str(tcc)]});
 xlim([-4 4]); ylim([-0.5 1.5]);
 pbaspect([8 2 1]);
 
-% Compute area of trailer cell
-xT = [x2,fliplr(x3),x2(1)];
-yT = [y2,fliplr(y3),y2(1)];
+% Compute area of trailer cell (updated 6/16)
+%xT = [x2,fliplr(x3),x2(1)];
+%yT = [y2,fliplr(y3),y2(1)];
+
+xT = [x2,x3,flip(x2)];
+yT = [y2,y3,y2(1)*ones(1,length(y2))];
 aT = polyarea(xT,yT);
 
-% Compute area of leader cell
-xL = [x1,fliplr(x3),x1(1)];
-yL = [y1,fliplr(y3),y1(1)];
+% Compute area of leader cell (updated 6/16)
+%xT = [x1,fliplr(x3),x1(1)];
+%yT = [y1,fliplr(y3),y1(1)];
+
+xL = [x1,x3,flip(x1)];
+yL = [y1,y3,y1(1)*ones(1,length(y1))];
 aL = polyarea(xL,yL);
 
 sprintf('Area of leader cell %.4f and trailer cell %.4f',aL,aT)
+
+save bubble_v7.mat;
 
 
