@@ -5,17 +5,17 @@ close all;
 clc;
 
 % Dimensionless parameters
-f   = 0.0;          % maximal adhesion/protrusion
+f   = 0.2;          % maximal adhesion/protrusion
 t0  = 1.5;          % characteristic tension that breaks adhesions
 tau = 0.1;          % ratio of membrane tension to adhesion/protrusion
 
 %% Numerical solver
 t1  = 1.0;          % leader force
 t2  = 1.0;          % trailer force
-tcc = 0.9;          % cell-cell force
+tcc = 0.7;          % cell-cell force
 
-h   = 0.5;
-w   = 0.01;
+h   = 0.6;
+w   = 0.2;
 
 % Step 1. Force balance at the top of cell-cell region.
 % (1.a') t1 cos(phi1) - t2 cos(phi2) = 0
@@ -84,7 +84,11 @@ r2 = vpasolve(dA2,rs2,[0 Inf]);
 a2 = acos(cos(b2) - h/r2);
 
 % Step 3. Find the radius of curvature for the cell-cell junction:
-rcc = tcc/abs(t2/r2 - t1/r1);
+if (tcc == 0) || (abs(t2/r2 - t1/r1)<1e-14)
+   rcc = 100;
+else
+    rcc =  tcc/abs(t2/r2 - t1/r1);
+end
 
 % Step 4. From trigonometry at the cell-cell interface   
 %func2 = @(x) h^2/(cos(abs(x)+abs(w))^2) - 2*rcc^2*(1-cos(2*abs(x)));    
@@ -127,7 +131,7 @@ N = 100;
 th2 = linspace(start_angle2,end_angle2,N);
 x2 = center2(1) + r2*cos(th2);
 y2 = center2(2) + r2*sin(th2);
-plot(x2,y2,'-b','linewidth',2);
+plot(x2,y2,'-','color',[0.7 0 0.5],'linewidth',2);
 hold on
 
 % Leader cell
@@ -137,7 +141,7 @@ end_angle1 = pi/2+b1;
 th1 = linspace(start_angle1,end_angle1,N);
 x1 = center1(1) + r1*cos(th1);
 y1 = center1(2) + r1*sin(th1);
-plot(x1,y1,'-b','linewidth',2);
+plot(x1,y1,'-','color',[0.7 0 0.5],'linewidth',2);
 hold on;
 
 if (w==0 || wsgn<0)
@@ -155,17 +159,27 @@ th3 = linspace(start_angle_cc,end_angle_cc,N);
 center3 = [x1(end)-h*cot(gamma+abs(x))-rcc*cos(pi/2-gamma);y1(end)+rcc*sin(abs(w))];
 x3 = center3(1) + rcc*cos(th3);
 y3 = center3(2) + rcc*sin(th3);
-plot(x3,y3,'-g','linewidth',2);
+plot(x3,y3,'-','color',[0.7 0 0.5],'linewidth',2);
 
-plot(linspace(-4,6,100),y2(1)*ones(100,1),'-k','linewidth',2);
-scatter(x1(1),y1(1),100,'bo','fill');
-scatter(x2(1),y2(1),100,'bo','fill');
-scatter(x1(end),y1(end),100,'bo','fill');
+x1area = [x1,x3];
+y1area = [y1,y3];
+fill(x1area,y1area,[0.7 0 0.5],'facealpha',0.4,'edgecolor','none');
+
+x2area = [x2,x3];
+y2area = [y2,y3];
+fill(x2area,y2area,[0.7 0 0.5],'facealpha',0.2,'edgecolor','none');
+
+plot(linspace(-4,6,100),y2(1)*ones(100,1),'-','color',[0.75 0.75 0.75],'linewidth',3);
+scatter(x1(1),y1(1),100,'ko','fill');
+scatter(x2(1),y2(1),100,'ko','fill');
+scatter(x1(end),y1(end),100,'ko','fill');
 set(gca,'fontsize',20,'fontname','Times New Roman'); box on;
 set(gcf,'color','w');
 %title({['\zeta_{cc} = ',num2str(zetacc), ', r_{1} = ',num2str(r1),', r_{2} = ',num2str(r2),', r_{cc} = ',num2str(rcc)],['t_{1} = ', num2str(t1), ', \alpha_{1} = ', num2str(a1*180/pi),', \beta_{1} = ', num2str(real(b1)*180/pi)],['t_{2} = ', num2str(t2), ', \alpha_{2} = ', num2str(a2*180/pi),', \beta_{2} = ',num2str(real(b2)*180/pi)],['\gamma = ', num2str(real(gamma)*180/pi),', w = ', num2str(real(w)*180/pi),', v1 = ', num2str(v1),', v2 = ', num2str(v1),', v3 = ', num2str(v3),', h = ', num2str(h),', t_{cc} = ',num2str(tcc)]});
-title({['r_{1} = ',num2str(double(r1)),', r_{2} = ',num2str(double(r2)),', r_{cc} = ',num2str(double(rcc))],['t_{1} = ', num2str(t1), ', \alpha_{1} = ', num2str(double(a1*180/pi)),', \beta_{1} = ', num2str(double(b1*180/pi))],['t_{2} = ', num2str(t2), ', \alpha_{2} = ', num2str(double(a2*180/pi)),', \beta_{2} = ',num2str(double(b2*180/pi))],['\gamma = ', num2str(double(gamma*180/pi)),', w = ', num2str(double(w*180/pi)),', h = ', num2str(h),', t_{cc} = ',num2str(tcc)]});
-xlim([-4 4]); ylim([-0.5 1.5]);
+title({['t_{L} = ', num2str(t1), ', t_{T} = ', num2str(t2), ', t_{cc} = ', num2str(tcc)],['r_{L} = ',num2str(double(r1)),', r_{T} = ',num2str(double(r2)),', r_{cc} = ',num2str(double(rcc))],['\alpha_{L} = ', num2str(double(a1)),', \beta_{L} = ', num2str(double(b1)),', \alpha_{T} = ', num2str(double(a2)),', \beta_{T} = ',num2str(double(b2))],['\gamma = ', num2str(double(gamma)),', w = ', num2str(double(w)),', h = ', num2str(h)]});
+xlim([-4 4]); ylim([-0.5 2.5]);
+set(gca,'xtick',[])
+set(gca,'ytick',[])
 pbaspect([8 2 1]);
 
 % Compute area of trailer cell (updated 6/16)
